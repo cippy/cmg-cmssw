@@ -8,7 +8,7 @@ from wmass_parameters import *
 
 if len(sys.argv) < 2:
     print "----- WARNING -----"
-    print "Too few arguments: need at list cards folder name. E.g.: cards/<whatever_you_chose>/ (only the part inside brackets)"
+    print "Too few arguments: need at list cards folder name (absolute afs path). E.g.: /afs/blabla/python/plotter/cards/<whatever_you_chose>/"
     print "-------------------"
     quit()
 
@@ -22,7 +22,7 @@ class WMassFitMaker:
         self.options = options
 
 
-    def harvestEm(channel='wenu',charge='both'):
+    def harvestEm(self,channel='wenu',charge='both'):
         cmb = ch.CombineHarvester()
 
         # Read all the cards.
@@ -43,7 +43,7 @@ class WMassFitMaker:
 
         # Create workspace to hold the morphing pdfs and the mass
         w = ROOT.RooWorkspace('morph', 'morph')
-        mass = w.factory('mw[{mwrange}]'.format(mwrange==self.mwrange))
+        mass = w.factory('mw[{mwrange}]'.format(mwrange=self.mwrange))
 
         # BuildRooMorphing will dump a load of debug plots here
         debug = ROOT.TFile(self.bindir+'/debug.root', 'RECREATE')
@@ -79,96 +79,138 @@ class WMassFitMaker:
         writer.SetVerbosity(1)
         writer.WriteCards(outdir, cmb)
 
-        def combineCards(input_dcs,target_dc):
-            ## running combineCards to make the combined plus+minus datacard                        
-            if os.path.isfile(target_dc):  
-                print 'removing existing combined datacard first!'
-                os.system('rm {dc}'.format(dc=target_dc) )
-            dcs = os.listdir(subdir+"/wenu_cards_morphed_both/")
-            print 'running combineCards.py'
-            combineCardsCmd = 'combineCards.py {dcs} >& {target_dc}'.format(dcs=input_dcs, target_dc=target_dc)
-            print combineCardsCmd
-            ## run combineCards and make the workspace                                                                            
-            os.system(combineCardsCmd )
-            print 'running text2workspace'
-            t2wCmd = 'text2workspace.py {target_dc} '.format(subdir=subdir, target_dc=target_dc)
-            print t2wCmd
-            os.system(t2wCmd)
+    def combineCards(self, input_dcs,target_dc):
+        ## running combineCards to make the combined plus+minus datacard                        
+        if os.path.isfile(target_dc):  
+            print 'removing existing combined datacard first!'
+            os.system('rm {dc}'.format(dc=target_dc) )
+        dcs = os.listdir(subdir+"/wenu_cards_morphed_both/")
+        print 'running combineCards.py'
+        combineCardsCmd = 'combineCards.py {dcs} >& {target_dc}'.format(dcs=input_dcs, target_dc=target_dc)
+        print combineCardsCmd
+        ## run combineCards and make the workspace                                                                            
+        os.system(combineCardsCmd )
+        print 'running text2workspace'
+        t2wCmd = 'text2workspace.py {target_dc} '.format(subdir=subdir, target_dc=target_dc)
+        print t2wCmd
+        os.system(t2wCmd)
 
-        def run(workspaces):
-            if len(workspaces)<1:
-                print "ERROR: no workspaces passed. Doint nothing."
-                return
+    def run(workspaces):
+        if len(workspaces)<1:
+            print "ERROR: no workspaces passed. Doint nothing."
+            return
 
-            date = datetime.date.today().isoformat()
+        date = datetime.date.today().isoformat()
 
-            combineCmds = {}
-            for m,ws in enumerate(workspaces):
-                print "===> RUN FIT FOR WORKSPACE: ",ws
-                name = re.search('\S+eta\_(\S+)\/wenu\S+',ws).group(1)
-                if name==None: name="comb"
-                ## constructing the command                                                                                                                                     
-                combine_base  = 'combine -t -1 -M MultiDimFit --setPhysicsModelParameters mw={central},r=1 --setPhysicsModelParameterRanges mw={mwrange} '.format(central=self.mwcentral,mwrange=self.mwrange)
-                combine_base += ' --redefineSignalPOIs=mw --algo grid --points {npoints} {target_ws} '.format(npoints=self.npoints, target_ws=ws)
+        combineCmds = {}
+        for m,ws in enumerate(workspaces):
+            print "===> RUN FIT FOR WORKSPACE: ",ws
+            name = re.search('\S+eta\_(\S+)\/wenu\S+',ws).group(1)
+            if name==None: name="comb"
+            ## constructing the command                                                                                                                                     
+            combine_base  = 'combine -t -1 -M MultiDimFit --setPhysicsModelParameters mw={central},r=1 --setPhysicsModelParameterRanges mw={mwrange} '.format(central=self.mwcentral,mwrange=self.mwrange)
+            combine_base += ' --redefineSignalPOIs=mw --algo grid --points {npoints} {target_ws} '.format(npoints=self.npoints, target_ws=ws)
 
-                saveNuisances = ''
-                saveNuisances += ' --saveSpecifiedNuis {vs}'.format(vs=','.join('CMS_We_pdf'+str(i) for i in range(1,27)))
-                saveNuisances += '{vs} '.format(vs=','.join(['CMS_W_ptw','CMS_We_elescale']))
+            saveNuisances = ''
+            saveNuisances += ' --saveSpecifiedNuis {vs}'.format(vs=','.join('CMS_We_pdf'+str(i) for i in range(1,27)))
+            saveNuisances += '{vs} '.format(vs=','.join(['CMS_W_ptw','CMS_We_elescale']))
 
-                combineCmds["nominal"].append(combine_base + ' -n {date}_{name} {sn} '.format(date=date,name=name,sn=saveNuisances))
-                for nuisgroup in self.options.freezeNuisanceGroups:
-                    combineCmds["no%s" % nuisgroup] = combine_base + ' -n {date}_{name}_no{unc} --freezeNuisanceGroups {unc} '.format(date=date,name=name,unc=nuisgroup)
-                for nuis in self.options.freezeNuisances:
-                    combineCmds["no%s" % nuis] = combine_base + ' -n {date}_{name}_no{unc} --freezeNuisances {unc} '.format(date=date,name=name,unc=nuis)
+            combineCmds["nominal"].append(combine_base + ' -n {date}_{name} {sn} '.format(date=date,name=name,sn=saveNuisances))
+            for nuisgroup in self.options.freezeNuisanceGroups:
+                nuisgroup_name = nuisgroup.split(",")[0]
+                nuisgroup_friendlyName = nuisgroup.split(",")[0]
+                if (len(nuisgroup.split(",")) > 1):
+                    nuisgroup_friendlyName = nuisgroup.split(",")[1]
+                combineCmds["no%s" % nuisgroup_friendlyName] = combine_base + ' -n {date}_{name}_no{uncfr} --freezeNuisanceGroups {unc} '.format(date=date,name=name,uncfr=nuisgroup_friendlyName,unc=nuisgroup_name)
+            for nuis in self.options.freezeNuisances:
+                nuis_name = nuis.split(",")[0]
+                nuis_friendlyName = nuis.split(",")[0]
+                if (len(nuis.split(",")) > 1):
+                    nuis_friendlyName = nuis.split(",")[1]
+                combineCmds["no%s" % nuis_friendlyName] = combine_base + ' -n {date}_{name}_no{uncfr} --freezeNuisances {unc} '.format(date=date,name=name,uncfr=nuis_FriendlyName,unc=nuis_name)
 
+            keys = combineCmds.keys()
+            keys.sort()
+            
+            for key in keys:
+                #print "%s: %s" % (key, combineCmds.get(key))
+                cmd = combineCmds.get(key)
                 if runBatch:
-                    for key,cmd in combineCmds.iteritems():
-                        cmd += ' --job-mode lxbatch --split-points 10 --sub-opts="-q 8nh" --task-name {name}_{uncset}'.format(name=name,uncset=key)
-                    run_combine_allUnc  = 'combineTool.py ' + ' '.join(run_combine_allUnc.split()[1:])
-                    run_combine_noPdf   = 'combineTool.py ' + ' '.join(run_combine_noPdf .split()[1:])
-                    run_combine_noPtW   = 'combineTool.py ' + ' '.join(run_combine_noPtW .split()[1:])
-                    run_combine_noEScale   = 'combineTool.py ' + ' '.join(run_combine_noEScale .split()[1:])
-
-
-                ## running combine once with the systematics and once without                        
+                    cmd += ' --job-mode lxbatch --split-points 10 --sub-opts="-q 8nh" --task-name {name}_{uncset}'.format(name=name,uncset=key)
+                cmd = 'combineTool.py ' + ' '.join(cmd.split()[1:])
                 print '-- running combine command ------------------------------'
-                print '---     with uncertainties: -----------------------------'
-                print run_combine_allUnc
-                os.system(run_combine_allUnc)
+                print '---   ' + str(key) + ': -----------------------------'
+                print cmd
+                os.system(cmd)
 
-                print '---     without PDF uncertainties: --------------------------'
-                print run_combine_noPdf
-                os.system(run_combine_noPdf )
+            # another possibility
+            # for key,cmd in combineCmds.iteritems():
+            #     if runBatch:
+            #         cmd += ' --job-mode lxbatch --split-points 10 --sub-opts="-q 8nh" --task-name {name}_{uncset}'.format(name=name,uncset=key)
+            #     cmd = 'combineTool.py ' + ' '.join(cmd.split()[1:])
+            #     print '-- running combine command ------------------------------'
+            #     print '---   ' + str(key) + ': -----------------------------'
+            #     print cmd
+            #     os.system(cmd)
 
-                print '---     without PTW uncertainties: --------------------------'
-                print run_combine_noPtW
-                os.system(run_combine_noPtW )
+##
+## following commented snippet is not needed anymore
+##
+            ## running combine once with the systematics and once without                        
+            # print '-- running combine command ------------------------------'
+            # print '---     with uncertainties: -----------------------------'
+            # print run_combine_allUnc
+            # os.system(run_combine_allUnc)
 
-                print '---     without electron energy scale uncertainties: --------------------------'
-                print run_combine_noEScale
-                os.system(run_combine_noEScale )
+            # print '---     without PDF uncertainties: --------------------------'
+            # print run_combine_noPdf
+            # os.system(run_combine_noPdf )
 
-                impactBase = 'combineTool.py -M Impacts -n {date}_eta_{name} -d {target_ws} -m {mass}'.format(mass=m,date=date,name=name, target_ws=ws)
-                impactBase += ' --setPhysicsModelParameters mw={central},r=1  --redefineSignalPOIs=mw --setPhysicsModelParameterRanges mw={mwrange} -t -1 '.format(central=central,mwrange=mwrange)
-                impactInitial = impactBase+'  --robustFit 1 --doInitialFit '
-                impactFits    = impactBase+'  --robustFit 1 --doFits '
-                impactJSON    = impactBase+'  -o impacts_eta_{name}.json '.format(name=name)
-                impactPlot    = 'plotImpacts.py -i impacts_eta_{name}.json -o impacts_eta_{name} --transparent'.format(name=name)
+            # print '---     without PTW uncertainties: --------------------------'
+            # print run_combine_noPtW
+            # os.system(run_combine_noPtW )
 
-                # os.system(impactInitial)
-                # os.system(impactFits   )
-                # os.system(impactJSON   )
-                # os.system(impactPlot   )
+            # print '---     without electron energy scale uncertainties: --------------------------'
+            # print run_combine_noEScale
+            # os.system(run_combine_noEScale )
+
+            # impactBase = 'combineTool.py -M Impacts -n {date}_eta_{name} -d {target_ws} -m {mass}'.format(mass=m,date=date,name=name, target_ws=ws)
+            # impactBase += ' --setPhysicsModelParameters mw={central},r=1  --redefineSignalPOIs=mw --setPhysicsModelParameterRanges mw={mwrange} -t -1 '.format(central=central,mwrange=mwrange)
+            # impactInitial = impactBase+'  --robustFit 1 --doInitialFit '
+            # impactFits    = impactBase+'  --robustFit 1 --doFits '
+            # impactJSON    = impactBase+'  -o impacts_eta_{name}.json '.format(name=name)
+            # impactPlot    = 'plotImpacts.py -i impacts_eta_{name}.json -o impacts_eta_{name} --transparent'.format(name=name)
+
+            # os.system(impactInitial)
+            # os.system(impactFits   )
+            # os.system(impactJSON   )
+            # os.system(impactPlot   )
 
 
 from optparse import OptionParser
-parser = OptionParser(usage="%prog testname ")
+parser = OptionParser(usage="%prog /afs/path/to/datacard/in/CMSSW_5_3_22/ [options]")
+# add options
+parser.add_option("--freezeNuisances",dest="freezeNuisances",action="append", default=[],help="append a nuisance parameter to freeze when doing the fit. Can pass two names separated by comma: the first is the nuisance name in the datacard, the second a user friendly name for recording (if not given, use the first name)")
+parser.add_option("--freezeNuisanceGroups",dest="freezeNuisanceGroups",action="append", default=[],help="append a group of nuisance parameters to freeze when doing the fit. Can pass two names separated by comma: the first is the nuisance name in the datacard, the second a user friendly name for recording (if not given, use the first name)")
+parser.add_option("--step", dest="step", type="string", default=None, help="Specify which step to do: available options are runHarvest, combineCards, runFit. This option is mandatory.")
 (options, args) = parser.parse_args()
 
+card_dir = str(args[0])  # it should be the absolute path to CMSSW_5_3_22 release
+if not card_dir.endswith("/"):
+    card_dir = card_dir + "/"
+if not "CMSSW_5_3_22" in str(args[0]) or not str(args[0]).startswith("/afs/"):
+    print "### WARNING ###"    
+    print "The path to datacard folder is expected to be inside a CMSSW_5_3_22 release and the absolute path should be passed. Did you type the right full path?"
+    print "Quitting ..."
+    quit()
 
 
-#card_dir = '/afs/cern.ch/work/m/mciprian/w_mass_analysis/CMSSW_5_3_22_patch1/src/CMGTools/WMass/python/plotter/cards/' + str(args[0]) + '/'
-card_dir = 'cards/' + str(args[0]) + '/'
+if not options.step:
+    print "### WARNING ###"    
+    print "You forgot option --step <arg>, where <arg> can be runHarvest, combineCards, runFit. Please try again"
+    quit()
+
+#card_dir = 'cards/' + str(args[0]) + '/'
 subdirs = [x[0] for x in os.walk(card_dir)]
 
 #mwrange='0,30'
@@ -177,11 +219,21 @@ mwrange='%d,%d' % (mass_id_down,mass_id_up)
 npoints = n_mass_id
 central = mass_id_central
 
-runHarvest = True
-runBatch   = False
-justHadd   = False
+runBatch   = False # not needed, running in local is faster at the moment
+justHadd   = False # actually not implemented
+runHarvest = False
 combineCards = False
 runFit = False
+if options.step == "runHarvest":
+    runHarvest = True
+elif options.step == "combineCards":
+    combineCards = True
+elif options.step == "runFit":
+    runFit = True
+else:
+    print "### ERROR ###"
+    print " step = %s is not a valid option. Choice is among runHarvest, combineCards, runFit. Please try again" % str(options.step)
+    quit()
 
 input_dcs_alleta = ""
 workspaces = []
@@ -200,7 +252,7 @@ for isub, subdir in enumerate(subdirs):
 
     if runHarvest:
         ## run the combine harvester which combines all the datacards etc. 
-        fit.harvest()
+        fit.harvestEm()
 
     target_dc = '{subdir}/wenu_cards_morphed_both/morphed_datacard_channel.txt'.format(subdir=subdir)
     target_ws = target_dc.replace('txt','root')
@@ -223,64 +275,66 @@ if combineCards:
     fit.combineCards(input_dcs_alleta,comb_dc)
 
 if runFit:
-    for m,ws in enumerate(workspaces):
-        print "===> RUN FIT FOR WORKSPACE: ",ws
-        name = re.search('\S+eta\_(\S+)\/wenu\S+',ws).group(1)
-        if name==None: name="comb"
-        ## constructing the command
-        combine_base  = 'combine -t -1 -M MultiDimFit --setPhysicsModelParameters mw={central},r=1 --setPhysicsModelParameterRanges mw={mwrange} '.format(central=central,mwrange=mwrange)
-        combine_base += ' --redefineSignalPOIs=mw --algo grid --points {npoints} {target_ws} '.format(npoints=npoints, target_ws=ws)
+    fit.run(workspaces)
 
-        saveNuisances = ''
-        saveNuisances += ' --saveSpecifiedNuis {vs} '.format(vs=','.join('CMS_We_pdf'+str(i) for i in range(1,27)))
+    # for m,ws in enumerate(workspaces):
+    #     print "===> RUN FIT FOR WORKSPACE: ",ws
+    #     name = re.search('\S+eta\_(\S+)\/wenu\S+',ws).group(1)
+    #     if name==None: name="comb"
+    #     ## constructing the command
+    #     combine_base  = 'combine -t -1 -M MultiDimFit --setPhysicsModelParameters mw={central},r=1 --setPhysicsModelParameterRanges mw={mwrange} '.format(central=central,mwrange=mwrange)
+    #     combine_base += ' --redefineSignalPOIs=mw --algo grid --points {npoints} {target_ws} '.format(npoints=npoints, target_ws=ws)
 
-        date = datetime.date.today().isoformat()
+    #     saveNuisances = ''
+    #     saveNuisances += ' --saveSpecifiedNuis {vs} '.format(vs=','.join('CMS_We_pdf'+str(i) for i in range(1,27)))
 
-        run_combine_allUnc = combine_base + ' -n {date}_{name} {sn} '.format(date=date,name=name,sn=saveNuisances)
-        run_combine_noPdf  = combine_base + ' -n {date}_{name}_noPDFUncertainty --freezeNuisanceGroups pdfUncertainties '.format(date=date,name=name)
-        run_combine_noPtW  = combine_base + ' -n {date}_{name}_noPTWUncertainty --freezeNuisances CMS_W_ptw '.format(date=date,name=name)
-        run_combine_noEScale  = combine_base + ' -n {date}_{name}_noEScaleUncertainty --freezeNuisances CMS_We_elescale '.format(date=date,name=name)
+    #     date = datetime.date.today().isoformat()
 
-        if runBatch:
-            run_combine_allUnc += ' --job-mode lxbatch --split-points 10 --sub-opts="-q 8nh" --task-name {name}                  '.format(name=name)
-            run_combine_noPdf  += ' --job-mode lxbatch --split-points 10 --sub-opts="-q 8nh" --task-name {name}_noPDFUncertainty '.format(name=name)
-            run_combine_noPtW  += ' --job-mode lxbatch --split-points 10 --sub-opts="-q 8nh" --task-name {name}_noPtWUncertainty '.format(name=name)
-            run_combine_noEScale  += ' --job-mode lxbatch --split-points 10 --sub-opts="-q 8nh" --task-name {name}_noEScaleUncertainty '.format(name=name)
-            run_combine_allUnc  = 'combineTool.py ' + ' '.join(run_combine_allUnc.split()[1:])
-            run_combine_noPdf   = 'combineTool.py ' + ' '.join(run_combine_noPdf .split()[1:])
-            run_combine_noPtW   = 'combineTool.py ' + ' '.join(run_combine_noPtW .split()[1:])
-            run_combine_noEScale   = 'combineTool.py ' + ' '.join(run_combine_noEScale .split()[1:])
+    #     run_combine_allUnc = combine_base + ' -n {date}_{name} {sn} '.format(date=date,name=name,sn=saveNuisances)
+    #     run_combine_noPdf  = combine_base + ' -n {date}_{name}_noPDFUncertainty --freezeNuisanceGroups pdfUncertainties '.format(date=date,name=name)
+    #     run_combine_noPtW  = combine_base + ' -n {date}_{name}_noPTWUncertainty --freezeNuisances CMS_W_ptw '.format(date=date,name=name)
+    #     run_combine_noEScale  = combine_base + ' -n {date}_{name}_noEScaleUncertainty --freezeNuisances CMS_We_elescale '.format(date=date,name=name)
+
+    #     if runBatch:
+    #         run_combine_allUnc += ' --job-mode lxbatch --split-points 10 --sub-opts="-q 8nh" --task-name {name}                  '.format(name=name)
+    #         run_combine_noPdf  += ' --job-mode lxbatch --split-points 10 --sub-opts="-q 8nh" --task-name {name}_noPDFUncertainty '.format(name=name)
+    #         run_combine_noPtW  += ' --job-mode lxbatch --split-points 10 --sub-opts="-q 8nh" --task-name {name}_noPtWUncertainty '.format(name=name)
+    #         run_combine_noEScale  += ' --job-mode lxbatch --split-points 10 --sub-opts="-q 8nh" --task-name {name}_noEScaleUncertainty '.format(name=name)
+    #         run_combine_allUnc  = 'combineTool.py ' + ' '.join(run_combine_allUnc.split()[1:])
+    #         run_combine_noPdf   = 'combineTool.py ' + ' '.join(run_combine_noPdf .split()[1:])
+    #         run_combine_noPtW   = 'combineTool.py ' + ' '.join(run_combine_noPtW .split()[1:])
+    #         run_combine_noEScale   = 'combineTool.py ' + ' '.join(run_combine_noEScale .split()[1:])
 
     
-        ## running combine once with the systematics and once without 
-        print '-- running combine command ------------------------------'
-        print '---     with uncertainties: -----------------------------'
-        print run_combine_allUnc
-        os.system(run_combine_allUnc)
+    #     ## running combine once with the systematics and once without 
+    #     print '-- running combine command ------------------------------'
+    #     print '---     with uncertainties: -----------------------------'
+    #     print run_combine_allUnc
+    #     os.system(run_combine_allUnc)
 
-        print '---     without PDF uncertainties: --------------------------'
-        print run_combine_noPdf
-        os.system(run_combine_noPdf )
+    #     print '---     without PDF uncertainties: --------------------------'
+    #     print run_combine_noPdf
+    #     os.system(run_combine_noPdf )
 
-        print '---     without PTW uncertainties: --------------------------'
-        print run_combine_noPtW
-        os.system(run_combine_noPtW )
+    #     print '---     without PTW uncertainties: --------------------------'
+    #     print run_combine_noPtW
+    #     os.system(run_combine_noPtW )
 
-        print '---     without electron energy scale uncertainties: --------------------------'
-        print run_combine_noEScale
-        os.system(run_combine_noEScale )
+    #     print '---     without electron energy scale uncertainties: --------------------------'
+    #     print run_combine_noEScale
+    #     os.system(run_combine_noEScale )
 
-        impactBase = 'combineTool.py -M Impacts -n {date}_eta_{name} -d {target_ws} -m {mass}'.format(mass=m,date=date,name=name, target_ws=ws)
-        impactBase += ' --setPhysicsModelParameters mw={central},r=1  --redefineSignalPOIs=mw --setPhysicsModelParameterRanges mw={mwrange} -t -1 '.format(central=central,mwrange=mwrange)
-        impactInitial = impactBase+'  --robustFit 1 --doInitialFit '
-        impactFits    = impactBase+'  --robustFit 1 --doFits '
-        impactJSON    = impactBase+'  -o impacts_eta_{name}.json '.format(name=name)
-        impactPlot    = 'plotImpacts.py -i impacts_eta_{name}.json -o impacts_eta_{name} --transparent'.format(name=name)
+    #     # impactBase = 'combineTool.py -M Impacts -n {date}_eta_{name} -d {target_ws} -m {mass}'.format(mass=m,date=date,name=name, target_ws=ws)
+    #     # impactBase += ' --setPhysicsModelParameters mw={central},r=1  --redefineSignalPOIs=mw --setPhysicsModelParameterRanges mw={mwrange} -t -1 '.format(central=central,mwrange=mwrange)
+    #     # impactInitial = impactBase+'  --robustFit 1 --doInitialFit '
+    #     # impactFits    = impactBase+'  --robustFit 1 --doFits '
+    #     # impactJSON    = impactBase+'  -o impacts_eta_{name}.json '.format(name=name)
+    #     # impactPlot    = 'plotImpacts.py -i impacts_eta_{name}.json -o impacts_eta_{name} --transparent'.format(name=name)
 
-        # os.system(impactInitial)
-        # os.system(impactFits   )
-        # os.system(impactJSON   )
-        # os.system(impactPlot   )    
+    #     # os.system(impactInitial)
+    #     # os.system(impactFits   )
+    #     # os.system(impactJSON   )
+    #     # os.system(impactPlot   )    
 
 
 
