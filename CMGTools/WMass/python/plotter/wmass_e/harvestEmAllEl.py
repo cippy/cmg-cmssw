@@ -3,6 +3,7 @@ import CombineHarvester.CombinePdfs.morphing as morphing
 import ROOT
 import sys, glob,datetime,os,re
 
+Iamdebugging = True
 # import some parameters from wmass_parameters.py, they are also used by other scripts
 from wmass_parameters import *
 
@@ -84,7 +85,7 @@ class WMassFitMaker:
         if os.path.isfile(target_dc):  
             print 'removing existing combined datacard first!'
             os.system('rm {dc}'.format(dc=target_dc) )
-        dcs = os.listdir(subdir+"/wenu_cards_morphed_both/")
+        #dcs = os.listdir(subdir+"/wenu_cards_morphed_both/")  # what's the purpose of this line?
         print 'running combineCards.py'
         combineCardsCmd = 'combineCards.py {dcs} >& {target_dc}'.format(dcs=input_dcs, target_dc=target_dc)
         print combineCardsCmd
@@ -95,7 +96,7 @@ class WMassFitMaker:
         print t2wCmd
         os.system(t2wCmd)
 
-    def run(workspaces):
+    def run(self, workspaces):
         if len(workspaces)<1:
             print "ERROR: no workspaces passed. Doint nothing."
             return
@@ -115,7 +116,7 @@ class WMassFitMaker:
             saveNuisances += ' --saveSpecifiedNuis {vs}'.format(vs=','.join('CMS_We_pdf'+str(i) for i in range(1,27)))
             saveNuisances += '{vs} '.format(vs=','.join(['CMS_W_ptw','CMS_We_elescale']))
 
-            combineCmds["nominal"].append(combine_base + ' -n {date}_{name} {sn} '.format(date=date,name=name,sn=saveNuisances))
+            combineCmds["nominal"] = combine_base + ' -n {date}_{name} {sn} '.format(date=date,name=name,sn=saveNuisances)
             for nuisgroup in self.options.freezeNuisanceGroups:
                 nuisgroup_name = nuisgroup.split(",")[0]
                 nuisgroup_friendlyName = nuisgroup.split(",")[0]
@@ -127,7 +128,7 @@ class WMassFitMaker:
                 nuis_friendlyName = nuis.split(",")[0]
                 if (len(nuis.split(",")) > 1):
                     nuis_friendlyName = nuis.split(",")[1]
-                combineCmds["no%s" % nuis_friendlyName] = combine_base + ' -n {date}_{name}_no{uncfr} --freezeNuisances {unc} '.format(date=date,name=name,uncfr=nuis_FriendlyName,unc=nuis_name)
+                combineCmds["no%s" % nuis_friendlyName] = combine_base + ' -n {date}_{name}_no{uncfr} --freezeNuisances {unc} '.format(date=date,name=name,uncfr=nuis_friendlyName,unc=nuis_name)
 
             keys = combineCmds.keys()
             keys.sort()
@@ -238,17 +239,21 @@ else:
 input_dcs_alleta = ""
 workspaces = []
 for isub, subdir in enumerate(subdirs):
+    if Iamdebugging: 
+        print "### subdir"
+        print str(subdir)
     if subdir == subdirs[0]: continue
     if 'wenu_cards_morphed' in subdir: continue
     name = subdir.split('/')[-1]
     if not 'eta_' in name: continue
-
+    if Iamdebugging:
+        print "subdir was accepted"
     print '--------------------------------------------------------------------'
     print '- running for {mode} -----------------------------------------------'.format(mode=name)
     print '- in subdirectory {subdir} -----------------------------------------'.format(subdir=subdir)
     print '--------------------------------------------------------------------'
 
-    fit = WMassFitMaker(mwrange,central,npoints,subdir)
+    fit = WMassFitMaker(mwrange,central,npoints,subdir, options)
 
     if runHarvest:
         ## run the combine harvester which combines all the datacards etc. 
@@ -262,6 +267,13 @@ for isub, subdir in enumerate(subdirs):
         dcs = os.listdir(subdir+"/wenu_cards_morphed_both/")
         input_dcs=" ".join(["%s=%s" % (os.path.splitext(dc)[0],subdir+"/wenu_cards_morphed_both/"+dc) for dc in dcs if "txt" in dc])
         input_dcs_alleta += " "+input_dcs
+
+        if Iamdebugging:
+            print ""
+            print "input datacards --> input_dcs = " + str(input_dcs)
+            print "target datacard --> target_dc = " + str(target_dc)
+            print ""
+
         fit.combineCards(input_dcs,target_dc)
 
 comb_dir = card_dir+'comb'
@@ -270,6 +282,15 @@ if not os.path.exists(comb_dir):
 comb_dc = comb_dir+"/morphed_datacard_comb.txt"
 comb_ws = comb_dc.replace('txt','root')
 workspaces.append(comb_ws)
+
+if Iamdebugging:
+    print ""
+    print ""
+    print "Now the final step to combine datacards"
+    print "input datacards --> input_dcs_alleta = " + str(input_dcs_alleta)
+    print "target datacard --> comb_dc          = " + str(comb_dc)
+    print ""
+    print ""
         
 if combineCards:
     fit.combineCards(input_dcs_alleta,comb_dc)
