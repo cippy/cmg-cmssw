@@ -103,7 +103,7 @@ if __name__ == "__main__":
             if fspec.name != fitvarname: continue
             if xspec.bins[0] == "[":
                 if fspec.bins[0] == "[":        
-                    fbind = fspec.bins
+                    fbins = fspec.bins
                 else:
                     (nbins,fmin,fmax) = map(float, fspec.bins.split(','))
                     fbins = "[" + ",".join(map(str, [fmin+i*(fmax-fmin)/nbins for i in xrange(0,int(nbins+1))]))  + "]"
