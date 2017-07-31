@@ -7,6 +7,10 @@ Iamdebugging = True
 # import some parameters from wmass_parameters.py, they are also used by other scripts
 from wmass_parameters import *
 
+if Iamdebugging:
+    print "mass_id_down, mass_id_up = %s,%s" % (mass_id_down,mass_id_up)
+    
+
 if len(sys.argv) < 2:
     print "----- WARNING -----"
     print "Too few arguments: need at list cards folder name (absolute afs path). E.g.: /afs/blabla/python/plotter/cards/<whatever_you_chose>/"
@@ -106,8 +110,14 @@ class WMassFitMaker:
         combineCmds = {}
         for m,ws in enumerate(workspaces):
             print "===> RUN FIT FOR WORKSPACE: ",ws
-            name = re.search('\S+eta\_(\S+)\/wenu\S+',ws).group(1)
-            if name==None: name="comb"
+            # name = re.search('\S+eta\_(\S+)\/wenu\S+',ws)
+            name = re.search('\S+eta\_(\S+)\/wenu\S+',ws)
+            if name==None: 
+                name="comb"
+            else:
+                name=name.group(1)
+            if Iamdebugging:
+                print "In run() function: name = " + str(name)
             ## constructing the command                                                                                                                                     
             combine_base  = 'combine -t -1 -M MultiDimFit --setPhysicsModelParameters mw={central},r=1 --setPhysicsModelParameterRanges mw={mwrange} '.format(central=self.mwcentral,mwrange=self.mwrange)
             combine_base += ' --redefineSignalPOIs=mw --algo grid --points {npoints} {target_ws} '.format(npoints=self.npoints, target_ws=ws)
