@@ -124,6 +124,7 @@ class WMassFitMaker:
 
             saveNuisances = ''
             saveNuisances += ' --saveSpecifiedNuis {vs}'.format(vs=','.join('CMS_We_pdf'+str(i) for i in range(1,27)))
+            saveNuisances += ','
             saveNuisances += '{vs} '.format(vs=','.join(['CMS_W_ptw','CMS_We_elescale']))
 
             combineCmds["nominal"] = combine_base + ' -n {date}_{name} {sn} '.format(date=date,name=name,sn=saveNuisances)
@@ -292,17 +293,16 @@ if not os.path.exists(comb_dir):
 comb_dc = comb_dir+"/morphed_datacard_comb.txt"
 comb_ws = comb_dc.replace('txt','root')
 workspaces.append(comb_ws)
-
-if Iamdebugging:
-    print ""
-    print ""
-    print "Now the final step to combine datacards"
-    print "input datacards --> input_dcs_alleta = " + str(input_dcs_alleta)
-    print "target datacard --> comb_dc          = " + str(comb_dc)
-    print ""
-    print ""
         
 if combineCards:
+    if Iamdebugging:
+        print ""
+        print ""
+        print "Now the final step to combine datacards"
+        print "input datacards --> input_dcs_alleta = " + str(input_dcs_alleta)
+        print "target datacard --> comb_dc          = " + str(comb_dc)
+        print ""
+        print ""
     fit.combineCards(input_dcs_alleta,comb_dc)
 
 if runFit:
