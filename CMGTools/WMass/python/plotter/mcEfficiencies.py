@@ -316,7 +316,7 @@ def makeEff(mca,cut,idplot,xvarplot,returnSeparatePassFail=False,notDoProfile="a
             mybins += "*[-0.5,0.5,1.5]"
         else:
             mybins += ",2,-0.5,1.5"
-    print "makeing eff for idplot = ",idplot.name,"  ", idplot.expr, " vs ",xvarplot.expr
+    print "making eff for idplot = ",idplot.name,"  ", idplot.expr, " vs ",xvarplot.expr
     pspec = PlotSpec("%s_vs_%s"  % (idplot.name, xvarplot.name), 
                      "%s:%s" % (idplot.expr,xvarplot.expr),
                      mybins,
