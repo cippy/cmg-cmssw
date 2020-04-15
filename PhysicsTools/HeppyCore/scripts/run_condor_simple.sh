@@ -52,6 +52,7 @@ EOF
 
 [[ "${flavour}" != "" ]] && echo "+JobFlavour = \"${flavour}\"" >> $jobdesc
 [[ "${maxruntime}" != "" ]] && echo "+MaxRuntime = ${maxruntime}" >> $jobdesc
+[[ "${USER}" == "mciprian" ]] && echo "+AccountingGroup = \"group_u_CMS.CAF.ALCA\"" >> $jobdesc
 
 if [[ "$bulk" != "" ]]; then
     echo "queue Chunk matching dirs ${bulk}_Chunk*" >> $jobdesc

@@ -119,6 +119,7 @@ leptonTypeSmaller = NTupleObjectType("lepton", baseObjectTypes = [ particleType 
     NTupleVariable("mcMatchTau", lambda x : getattr(x, 'mcMatchTau', -99), int, mcOnly=True, help="True if the leptons comes from a tau"),
     NTupleVariable("mcPt",   lambda x : x.mcLep.pt() if getattr(x,"mcLep",None) else 0., mcOnly=True, help="p_{T} of associated gen lepton"),
     NTupleVariable("mediumMuonId",   lambda x : x.muonID("POG_ID_Medium") if abs(x.pdgId())==13 else 1, int, help="Muon POG Medium id"),
+    NTupleVariable("looseMuonId",   lambda x : x.muonID("POG_ID_Loose") if abs(x.pdgId())==13 else 1, int, help="Muon POG Loose id"),
 
 ])
 
@@ -305,7 +306,7 @@ genParticleWithLinksType = NTupleObjectType("genParticleWithLinks", baseObjectTy
 
 genParticleWithLinksTypeAndVertex = NTupleObjectType("genParticleWithLinksAndVertex", baseObjectTypes = [ genParticleWithAncestryType ], mcOnly=True, variables = [
     NTupleVariable("motherIndex", lambda x : x.motherIndex, int, help="index of the mother in the generatorSummary"),
-    NTupleVariable("vertexX", lambda x : x.vx(), float, help="x coordinate of vertex position"),
-    NTupleVariable("vertexY", lambda x : x.vy(), float, help="y coordinate of vertex position"),
+    #NTupleVariable("vertexX", lambda x : x.vx(), float, help="x coordinate of vertex position"),
+    #NTupleVariable("vertexY", lambda x : x.vy(), float, help="y coordinate of vertex position"),
     NTupleVariable("vertexZ", lambda x : x.vz(), float, help="z coordinate of vertex position")
 ])
