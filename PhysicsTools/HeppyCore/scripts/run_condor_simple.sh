@@ -42,7 +42,7 @@ cat > $jobdesc <<EOF
 Universe = vanilla
 Executable = ${prefix}${scriptName}
 getenv      = True
-use_x509userproxy = true
+use_x509userproxy = True
 Log        = ${prefix}condor_job_\$(ProcId).log
 Output     = ${prefix}condor_job_\$(ProcId).out
 Error      = ${prefix}condor_job_\$(ProcId).error
@@ -52,6 +52,7 @@ EOF
 
 [[ "${flavour}" != "" ]] && echo "+JobFlavour = \"${flavour}\"" >> $jobdesc
 [[ "${maxruntime}" != "" ]] && echo "+MaxRuntime = ${maxruntime}" >> $jobdesc
+[[ "${USER}" == "mciprian" ]] && echo "+AccountingGroup = \"group_u_CMS.CAF.ALCA\"" >> $jobdesc
 
 if [[ "$bulk" != "" ]]; then
     echo "queue Chunk matching dirs ${bulk}_Chunk*" >> $jobdesc

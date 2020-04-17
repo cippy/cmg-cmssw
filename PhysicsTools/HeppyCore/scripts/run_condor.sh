@@ -46,12 +46,11 @@ fi
 tar -czf chunk.tar.gz *
 transfer_input_files=${transfer_input_files},chunk.tar.gz
 
-
+#x509userproxy = \$ENV(X509_USER_PROXY) # doesn't always work, I removed it from below
 cat > ./job_desc.cfg <<EOF
 Universe = vanilla
 Executable = ${scriptName}
 use_x509userproxy = true
-x509userproxy = \$ENV(X509_USER_PROXY)
 Log        = condor_job_\$(ProcId).log
 Output     = condor_job_\$(ProcId).out
 Error      = condor_job_\$(ProcId).error
@@ -63,6 +62,7 @@ EOF
 
 [[ "${flavour}" != "" ]] && echo "+JobFlavour = \"${flavour}\"" >> ./job_desc.cfg
 [[ "${maxruntime}" != "" ]] && echo "+MaxRuntime = ${maxruntime}" >> ./job_desc.cfg
+[[ "${USER}" == "mciprian" ]] && echo "+AccountingGroup = \"group_u_CMS.CAF.ALCA\"" >> ./job_desc.cfg
 
 echo "queue 1" >> ./job_desc.cfg
 
