@@ -59,7 +59,7 @@ class Electron( Lepton ):
         elif showerShapes == "auto":
             showerShapes = "full5x5"
         vars = {
-            'dEtaIn' : abs(self.dEtaInSeed()) if "POG_SPRING16_25ns_v1" in wp else abs(self.physObj.deltaEtaSuperClusterTrackAtVtx()),
+            'dEtaIn' : abs(self.dEtaInSeed()) if ("POG_SPRING16_25ns_v1" in wp or "POG_FALL17_25ns_v1" in wp) else abs(self.physObj.deltaEtaSuperClusterTrackAtVtx()),
             'dPhiIn' : abs(self.physObj.deltaPhiSuperClusterTrackAtVtx()),
             'sigmaIEtaIEta' : self.physObj.full5x5_sigmaIetaIeta() if showerShapes == "full5x5" else self.physObj.sigmaIetaIeta(),
             'H/E' : self.physObj.hadronicOverEm(),
@@ -116,6 +116,14 @@ class Electron( Lepton ):
             'POG_SPRING16_25ns_v1_Medium' :  [('dEtaIn', [0.00311, 0.00609]), ('dPhiIn', [0.1030, 0.0450]), ('sigmaIEtaIEta', [0.00998, 0.0298]), ('H/E', [0.2530, 0.0878]), ('1/E-1/p', [0.1340, 0.13])],
             'POG_SPRING16_25ns_v1_Tight'  :  [('dEtaIn', [0.00308, 0.00605]), ('dPhiIn', [0.0816, 0.0394]), ('sigmaIEtaIEta', [0.00998, 0.0292]), ('H/E', [0.0414, 0.0641]), ('1/E-1/p', [0.0129, 0.0129])],
             'POG_SPRING16_25ns_v1_HLT'    :  [('dEtaIn', [0.004, 999]), ('dPhiIn', [0.020, 999]), ('sigmaIEtaIEta', [0.011, 0.031]), ('H/E', [0.060, 0.065]), ('1/E-1/p', [0.013, 0.013]), ('chi2', [sys.float_info.max, 3.0]), ('ECALPFIsoEA', [0.160, 0.120]), ('HCALPFIsoEA', [0.120, 0.120]), ('trkIso', [0.08, 0.08])],
+            ## ------- https://twiki.cern.ch/twiki/bin/view/CMS/CutBasedElectronIdentificationRun2#Working_points_for_94X_and_later
+            # note: H/E is no longer a simple number, but depends on rho and supercluster energy
+            # something as H/E < a + b/eSC + c*rho/eSC
+            # so use 3 numbers and let them be interpreted afterwards
+            'POG_FALL17_25ns_v1_Veto'   :  [('dEtaIn', [0.00463, 0.00814]), ('dPhiIn', [0.148, 0.19]), ('sigmaIEtaIEta', [0.0126, 0.0457]), ('H/E', [(0.05,1.16,0.0324),(0.05,2.54,0.183)]), ('1/E-1/p', [0.209, 0.132])],
+            'POG_FALL17_25ns_v1_Loose'  :  [('dEtaIn', [0.00377, 0.00674]), ('dPhiIn', [0.0884, 0.169]), ('sigmaIEtaIEta', [0.0112, 0.0425]), ('H/E', [(0.05,1.16,0.0324),(0.0441,2.54,0.183)]), ('1/E-1/p', [0.193, 0.111])],
+            'POG_FALL17_25ns_v1_Medium' :  [('dEtaIn', [0.0032, 0.00632]), ('dPhiIn', [0.0547, 0.0394]), ('sigmaIEtaIEta', [0.0106, 0.0387]), ('H/E', [(0.046,1.16,0.0324),(0.0275,2.52,0.183)]), ('1/E-1/p', [0.184, 0.0721])],
+            'POG_FALL17_25ns_v1_Tight'  :  [('dEtaIn', [0.00255, 0.00501]), ('dPhiIn', [0.022, 0.0236]), ('sigmaIEtaIEta', [0.0104, 0.0353]), ('H/E', [(0.026,1.15,0.0324),(0.0188,2.06,0.183)]), ('1/E-1/p', [0.159, 0.0197])],
         }
         WP_conversion_veto = {
             # missing Hits incremented by 1 because we return False if >=, note the '='
@@ -152,6 +160,11 @@ class Electron( Lepton ):
             'POG_SPRING16_25ns_v1_ConvVeto_Loose'  :  WP['POG_SPRING16_25ns_v1_Loose' ]+[('conversionVeto', [True, True]), ('missingHits', [2, 2])],
             'POG_SPRING16_25ns_v1_ConvVeto_Medium' :  WP['POG_SPRING16_25ns_v1_Medium']+[('conversionVeto', [True, True]), ('missingHits', [2, 2])],
             'POG_SPRING16_25ns_v1_ConvVeto_Tight'  :  WP['POG_SPRING16_25ns_v1_Tight' ]+[('conversionVeto', [True, True]), ('missingHits', [2, 2])],
+            ## ------- https://twiki.cern.ch/twiki/bin/view/CMS/CutBasedElectronIdentificationRun2#Working_points_for_94X_and_later
+            'POG_FALL17_25ns_v1_ConvVeto_Veto'   :  WP['POG_FALL17_25ns_v1_Veto'  ]+[('conversionVeto', [True, True]), ('missingHits', [3, 4])],
+            'POG_FALL17_25ns_v1_ConvVeto_Loose'  :  WP['POG_FALL17_25ns_v1_Loose' ]+[('conversionVeto', [True, True]), ('missingHits', [2, 2])],
+            'POG_FALL17_25ns_v1_ConvVeto_Medium' :  WP['POG_FALL17_25ns_v1_Medium']+[('conversionVeto', [True, True]), ('missingHits', [2, 2])],
+            'POG_FALL17_25ns_v1_ConvVeto_Tight'  :  WP['POG_FALL17_25ns_v1_Tight' ]+[('conversionVeto', [True, True]), ('missingHits', [2, 2])],
         }
 
         WP.update(WP_conversion_veto)
@@ -178,8 +191,10 @@ class Electron( Lepton ):
             'POG_SPRING15_25ns_v1_ConvVetoDxyDz_Tight'  :  WP['POG_SPRING15_25ns_v1_ConvVeto_Tight' ]+[('dxy',[0.0111, 0.0351]), ('dz',[0.0466,0.417])],
         }
         ## ------- in Spring16, not optimised simultaneously to the rest of ID. Cuts independent on WP
+        # same for Fall17
         for wps in ['Veto','Loose','Medium','Tight']:
             WP_conversion_veto_DxyDz['POG_SPRING16_25ns_v1_ConvVetoDxyDz_%s' % wps] =  WP['POG_SPRING16_25ns_v1_ConvVeto_%s' % wps ]+[('dxy',[0.05, 0.10]), ('dz',[0.10,0.20])]
+            WP_conversion_veto_DxyDz['POG_FALL17_25ns_v1_ConvVetoDxyDz_%s' % wps] =  WP['POG_FALL17_25ns_v1_ConvVeto_%s' % wps ]+[('dxy',[0.05, 0.10]), ('dz',[0.10,0.20])]
 
         WP.update(WP_conversion_veto_DxyDz)
 
@@ -189,8 +204,14 @@ class Electron( Lepton ):
             if cut_name == 'conversionVeto':
                 if (cut_eb if self.physObj.isEB() else cut_ee) and not vars[cut_name]:
                     return False
-            elif vars[cut_name] >= (cut_eb if self.physObj.isEB() else cut_ee):
-                return False
+            else:
+                if cut_name == 'H/E' and 'FALL17' in wp:
+                    p0,p1,p2 = cut_eb if self.physObj.isEB() else cut_ee
+                    invEsc = 1.0/self.physObj.ecalEnergy()
+                    if vars[cut_name] >= (p0 + p1*invEsc + p2 * self.rho * invEsc):
+                        return False
+                elif vars[cut_name] >= (cut_eb if self.physObj.isEB() else cut_ee):
+                    return False
         return True
 
     def mvaId( self ):
