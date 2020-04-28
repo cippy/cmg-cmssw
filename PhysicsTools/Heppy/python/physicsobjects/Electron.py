@@ -207,8 +207,10 @@ class Electron( Lepton ):
             else:
                 if cut_name == 'H/E' and 'FALL17' in wp:
                     p0,p1,p2 = cut_eb if self.physObj.isEB() else cut_ee
-                    invEsc = 1.0/self.physObj.ecalEnergy()
-                    if vars[cut_name] >= (p0 + p1*invEsc + p2 * self.rho * invEsc):
+                    invEsc = 0
+                    if self.physObj.ecalEnergy() > 0.0:
+                        invEsc = 1.0/self.physObj.ecalEnergy()
+                    if vars[cut_name] >= (p0 + p1 * invEsc + p2 * self.rho * invEsc):
                         return False
                 elif vars[cut_name] >= (cut_eb if self.physObj.isEB() else cut_ee):
                     return False
