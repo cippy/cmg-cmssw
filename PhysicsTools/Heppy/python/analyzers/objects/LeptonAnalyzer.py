@@ -75,8 +75,8 @@ class LeptonAnalyzer( Analyzer ):
                     mu.absIso03 <  getattr(self.cfg_ana,'loose_muon_absIso',9e99))
 
 
-
-        self.eleEffectiveArea = getattr(cfg_ana, 'ele_effectiveAreas', "Spring15_25ns_v1")
+        #third argument should be default which ignored if the attribute is set
+        self.eleEffectiveArea = getattr(cfg_ana, 'ele_effectiveAreas', "Fall17_25ns_v1")
         self.muEffectiveArea  = getattr(cfg_ana, 'mu_effectiveAreas',  "Spring15_25ns_v1")
         # MiniIsolation
         self.doMiniIsolation = getattr(cfg_ana, 'doMiniIsolation', False)
@@ -410,6 +410,18 @@ class LeptonAnalyzer( Analyzer ):
               else:              ele.EffectiveArea03 = 0.2393
               # warning: EAs not computed for cone DR=0.4 yet. Do not correct
               ele.EffectiveArea04 = 0.0
+          elif self.eleEffectiveArea == "Fall17_25ns_v1":
+              SCEta = abs(ele.superCluster().eta())
+              ## ----- https://github.com/cms-sw/cmssw/blob/CMSSW_10_2_X/RecoEgamma/ElectronIdentification/data/Fall17/effAreaElectrons_cone03_pfNeuHadronsAndPhotons_94X.txt
+              if   SCEta < 1.000: ele.EffectiveArea03 = 0.1440
+              elif SCEta < 1.479: ele.EffectiveArea03 = 0.1562
+              elif SCEta < 2.000: ele.EffectiveArea03 = 0.1032
+              elif SCEta < 2.200: ele.EffectiveArea03 = 0.0859
+              elif SCEta < 2.300: ele.EffectiveArea03 = 0.1116
+              elif SCEta < 2.400: ele.EffectiveArea03 = 0.1321
+              else:              ele.EffectiveArea03 = 0.1654
+              # warning: EAs not computed for cone DR=0.4 yet. Do not correct
+              ele.EffectiveArea04 = 0.0
           else: raise RuntimeError,  "Unsupported value for ele_effectiveAreas: can only use Data2012 (rho: ?), Phys14_v1 and Spring15_v1 (rho: fixedGridRhoFastjetAll)"
 
         # Electron scale calibrations
@@ -451,6 +463,8 @@ class LeptonAnalyzer( Analyzer ):
                  ele.tightIdResult = -1 + 1*ele.electronID("POG_Cuts_ID_SPRING15_25ns_v1_ConvVetoDxyDz_Veto") + 1*ele.electronID("POG_Cuts_ID_SPRING15_25ns_v1_ConvVetoDxyDz_Loose") + 1*ele.electronID("POG_Cuts_ID_SPRING15_25ns_v1_ConvVetoDxyDz_Medium") + 1*ele.electronID("POG_Cuts_ID_SPRING15_25ns_v1_ConvVetoDxyDz_Tight")
             elif self.cfg_ana.ele_tightId=="Cuts_SPRING16_25ns_v1_ConvVetoDxyDz" :
                  ele.tightIdResult = -1 + 1*ele.electronID("POG_Cuts_ID_SPRING16_25ns_v1_ConvVetoDxyDz_Veto") + 1*ele.electronID("POG_Cuts_ID_SPRING16_25ns_v1_ConvVetoDxyDz_Loose") + 1*ele.electronID("POG_Cuts_ID_SPRING16_25ns_v1_ConvVetoDxyDz_Medium") + 1*ele.electronID("POG_Cuts_ID_SPRING16_25ns_v1_ConvVetoDxyDz_Tight")
+            elif self.cfg_ana.ele_tightId=="Cuts_FALL17_25ns_v1_ConvVetoDxyDz" :
+                 ele.tightIdResult = -1 + 1*ele.electronID("POG_Cuts_ID_FALL17_25ns_v1_ConvVetoDxyDz_Veto") + 1*ele.electronID("POG_Cuts_ID_FALL17_25ns_v1_ConvVetoDxyDz_Loose") + 1*ele.electronID("POG_Cuts_ID_FALL17_25ns_v1_ConvVetoDxyDz_Medium") + 1*ele.electronID("POG_Cuts_ID_FALL17_25ns_v1_ConvVetoDxyDz_Tight")
 
             else :
                  try:
