@@ -87,7 +87,8 @@ class PileUpAnalyzer( Analyzer ):
             'std::vector<PileupSummaryInfo>',
             fallbackLabel="addPileupInfo"
             ) 
-
+        if self.cfg_comp.isMC:
+            self.mchandles['GenInfo'] = AutoHandle( ('generator','',''), 'GenEventInfoProduct' )
         if self.allVertices == '_AUTO_':
             self.handles['vertices'] =  AutoHandle( "offlineSlimmedPrimaryVertices", 'std::vector<reco::Vertex>', fallbackLabel="offlinePrimaryVertices" ) 
         else:
@@ -120,7 +121,8 @@ class PileUpAnalyzer( Analyzer ):
                         event.nPU = puInfo.nTrueInteractions()
 
                     if self.doHists:
-                        self.rawmcpileup.hist.Fill( event.nPU )
+                        genWeight_ = float(self.mchandles['GenInfo'].product().weight())     
+                        self.rawmcpileup.hist.Fill( event.nPU, genWeight_ )
 
                     ##get z position of on-time pile-up sorted by pt-hat
                     ptHat_zPositions = zip(puInfo.getPU_pT_hats(),puInfo.getPU_zpositions())
