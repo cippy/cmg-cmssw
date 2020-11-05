@@ -8,9 +8,7 @@
 <use name="DataFormats/HepMCCandidate"/>
 <use name="fastjet"/>
 <use name="ktjet"/>
-<use name="EgammaAnalysis/ElectronTools"/>
 <use name="CondFormats/EgammaObjects"/>
-<use name="RecoTauTag/RecoTau"/>
 <use name="boost"/>
 <use name="lhapdf"/>
 <export>

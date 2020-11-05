@@ -227,10 +227,10 @@ class JetAnalyzer( Analyzer ):
             #Check if lepton and jet have overlapping PF candidates 
             leps_with_overlaps = []
             if getattr(self.cfg_ana, 'checkLeptonPFOverlap', True):
-           if hasCommonSourceCandidatePtr(jet,lep):
-                for lep in leptons:
-                    if hasCommonSourceCandidatePtr(jet,lep):
-                        leps_with_overlaps += [lep]
+                if hasCommonSourceCandidatePtr(jet,lep):
+                    for lep in leptons:
+                        if hasCommonSourceCandidatePtr(jet,lep):
+                            leps_with_overlaps += [lep]
             if len(leps_with_overlaps)>0:
                 for lep in leps_with_overlaps:
                     lep.jetOverlap = jet

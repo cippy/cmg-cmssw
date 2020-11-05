@@ -294,7 +294,7 @@ genParticleType = NTupleObjectType("genParticle", baseObjectTypes = [ lightFourV
     NTupleVariable("pdgId",   lambda x : x.pdgId(), int),
     NTupleVariable("charge",   lambda x : x.threeCharge()/3.0, float),
     NTupleVariable("status",   lambda x : x.status(),int),
-    NTupleVariable("isPromptHard", lambda x : getattr(x,"promptHardFlag",0), int)
+    NTupleVariable("isPromptHard", lambda x : getattr(x,"promptHardFlag",0), int),
     NTupleVariable("isDirectPromptTauDecayProductFinalState", lambda x : getattr(x, "_isDirectPromptTauDecayProductFinalState", 0), int ),
     NTupleVariable("lastBeforeFSR"                          , lambda x : getattr(x, "_isLastCopyBeforeFSR"                    , 0), int ),
     NTupleVariable("fromHardProcessBeforeFSR"               , lambda x : getattr(x, "_fromHardProcessBeforeFSR"               , 0), int ),
