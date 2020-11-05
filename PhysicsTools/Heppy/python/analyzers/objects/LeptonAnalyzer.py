@@ -75,15 +75,16 @@ class LeptonAnalyzer( Analyzer ):
                     mu.relIso03 <= self.cfg_ana.loose_muon_relIso and 
                     mu.absIso03 <  getattr(self.cfg_ana,'loose_muon_absIso',9e99))
 
-
-
-        self.eleEffectiveArea = getattr(cfg_ana, 'ele_effectiveAreas', "Spring15_25ns_v1")
+        #third argument should be default which ignored if the attribute is set
+        #self.eleEffectiveArea = getattr(cfg_ana, 'ele_effectiveAreas', "Spring15_25ns_v1")
+        self.eleEffectiveArea = getattr(cfg_ana, 'ele_effectiveAreas', "Fall17_25ns_v1")
         self.muEffectiveArea  = getattr(cfg_ana, 'mu_effectiveAreas',  "Spring15_25ns_v1")
         # MiniIsolation
         self.IsolationComputer = None
+        self.miniIsolationPUCorr = None
         self.doMiniIsolation = getattr(cfg_ana, 'doMiniIsolation', False)
-        self.miniIsolationPUCorr = self.cfg_ana.miniIsolationPUCorr if self.doMiniIsolation else None
         if self.doMiniIsolation == True:
+            self.miniIsolationPUCorr = self.cfg_ana.miniIsolationPUCorr
             self.miniIsolationVetoLeptons = self.cfg_ana.miniIsolationVetoLeptons
             if self.miniIsolationVetoLeptons not in [ None, 'any', 'inclusive' ]:
                 raise RuntimeError("miniIsolationVetoLeptons should be None, or 'any' (all reco leptons), or 'inclusive' (all inclusive leptons)")
@@ -141,6 +142,8 @@ class LeptonAnalyzer( Analyzer ):
         # for new MVA ID implementation
         self.handles['conversions'] = AutoHandle( 'reducedEgamma:reducedConversions', 'reco::ConversionCollection')
         self.handles['beamspot'] = AutoHandle( 'offlineBeamSpot', 'reco::BeamSpot')
+
+
 
     def beginLoop(self, setup):
         super(LeptonAnalyzer,self).beginLoop(setup)
@@ -429,16 +432,17 @@ class LeptonAnalyzer( Analyzer ):
               else:              ele.EffectiveArea03 = 0.2393
               # warning: EAs not computed for cone DR=0.4 yet. Do not correct
               ele.EffectiveArea04 = 0.0
-          elif self.eleEffectiveArea == "Fall17":
+          elif self.eleEffectiveArea == "Fall17_25ns_v1":
+          #elif self.eleEffectiveArea == "Fall17":
               SCEta = abs(ele.superCluster().eta())
-              ## from RecoEgamma/ElectronIdentification/data/Fall17/effAreaElectrons_cone03_pfNeuHadronsAndPhotons_92X.txt
-              if   SCEta < 1.000: ele.EffectiveArea03 = 0.1566
-              elif SCEta < 1.479: ele.EffectiveArea03 = 0.1626
-              elif SCEta < 2.000: ele.EffectiveArea03 = 0.1073
-              elif SCEta < 2.200: ele.EffectiveArea03 = 0.0854
-              elif SCEta < 2.300: ele.EffectiveArea03 = 0.1051
-              elif SCEta < 2.400: ele.EffectiveArea03 = 0.1204
-              else:               ele.EffectiveArea03 = 0.1524
+              ## ----- https://github.com/cms-sw/cmssw/blob/CMSSW_10_2_X/RecoEgamma/ElectronIdentification/data/Fall17/effAreaElectrons_cone03_pfNeuHadronsAndPhotons_94X.txt
+              if   SCEta < 1.000: ele.EffectiveArea03 = 0.1440
+              elif SCEta < 1.479: ele.EffectiveArea03 = 0.1562
+              elif SCEta < 2.000: ele.EffectiveArea03 = 0.1032
+              elif SCEta < 2.200: ele.EffectiveArea03 = 0.0859
+              elif SCEta < 2.300: ele.EffectiveArea03 = 0.1116
+              elif SCEta < 2.400: ele.EffectiveArea03 = 0.1321
+              else:              ele.EffectiveArea03 = 0.1654
               # warning: EAs not computed for cone DR=0.4, use the values for DR=0.3 scaled by 16/9 instead
               ele.EffectiveArea04 = ele.EffectiveArea03*16./9.
           else: raise RuntimeError("Unsupported value for ele_effectiveAreas: can only use Data2012 (rho: ?), Phys14_v1 and Spring15_v1 (rho: fixedGridRhoFastjetAll)")
@@ -473,7 +477,7 @@ class LeptonAnalyzer( Analyzer ):
         # Set tight MVA id
         for ele in allelectrons:
             if self.cfg_ana.ele_tightId=="Cuts_SPRING15_25ns_v1_ConvVetoDxyDz" :
-                 ele.tightIdResult = -1 + ele.electronID("POG_Cuts_ID_SPRING15_25ns_v1_ConvVetoDxyDz_Veto") + 1*ele.electronID("POG_Cuts_ID_SPRING15_25ns_v1_ConvVetoDxyDz_Loose") + 1*ele.electronID("POG_Cuts_ID_SPRING15_25ns_v1_ConvVetoDxyDz_Medium") + 1*ele.electronID("POG_Cuts_ID_SPRING15_25ns_v1_ConvVetoDxyDz_Tight")
+                 ele.tightIdResult = -1 + 1*ele.electronID("POG_Cuts_ID_SPRING15_25ns_v1_ConvVetoDxyDz_Veto") + 1*ele.electronID("POG_Cuts_ID_SPRING15_25ns_v1_ConvVetoDxyDz_Loose") + 1*ele.electronID("POG_Cuts_ID_SPRING15_25ns_v1_ConvVetoDxyDz_Medium") + 1*ele.electronID("POG_Cuts_ID_SPRING15_25ns_v1_ConvVetoDxyDz_Tight")
             elif self.cfg_ana.ele_tightId=="Cuts_SPRING16_25ns_v1_ConvVetoDxyDz" :
                  ele.tightIdResult = -1 + 1*ele.electronID("POG_Cuts_ID_SPRING16_25ns_v1_ConvVetoDxyDz_Veto") + 1*ele.electronID("POG_Cuts_ID_SPRING16_25ns_v1_ConvVetoDxyDz_Loose") + 1*ele.electronID("POG_Cuts_ID_SPRING16_25ns_v1_ConvVetoDxyDz_Medium") + 1*ele.electronID("POG_Cuts_ID_SPRING16_25ns_v1_ConvVetoDxyDz_Tight")
             elif self.cfg_ana.ele_tightId=="Cuts_FALL17_94X_v1_ConvVetoDxyDz" :
@@ -482,6 +486,9 @@ class LeptonAnalyzer( Analyzer ):
                  ele.tightIdResult = ele.countWP(self.cfg_ana.ele_tightId, WPs=["wpLoose", "wp90", "wp80"])
             elif self.cfg_ana.ele_tightId.startswith("cutBasedElectronID-") and (self.cfg_ana.ele_tightId.split("-")[-1] in ["V1","V2"]):
                  ele.tightIdResult = ele.countWP(self.cfg_ana.ele_tightId, WPs=["veto", "loose", "medium", "tight"])
+            elif self.cfg_ana.ele_tightId=="Cuts_FALL17_25ns_v1_ConvVetoDxyDz" :
+                 ele.tightIdResult = -1 + 1*ele.electronID("POG_Cuts_ID_FALL17_25ns_v1_ConvVetoDxyDz_Veto") + 1*ele.electronID("POG_Cuts_ID_FALL17_25ns_v1_ConvVetoDxyDz_Loose") + 1*ele.electronID("POG_Cuts_ID_FALL17_25ns_v1_ConvVetoDxyDz_Medium") + 1*ele.electronID("POG_Cuts_ID_FALL17_25ns_v1_ConvVetoDxyDz_Tight")
+
             else :
                  try:
                      ele.tightIdResult = ele.electronID(self.cfg_ana.ele_tightId)

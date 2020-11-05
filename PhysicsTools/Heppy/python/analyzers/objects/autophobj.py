@@ -25,6 +25,12 @@ fourVectorType = NTupleObjectType("fourVector", variables = [
     NTupleVariable("p4",    lambda x : x, "TLorentzVector", default=ROOT.reco.Particle.LorentzVector(0.,0.,0.,0.), filler = lambda vector, obj: vector.SetPtEtaPhiM(obj.pt(), obj.eta(), obj.phi(), obj.mass())),
     #               ^^^^------- Note: p4 normally is not saved unless 'saveTLorentzVectors' is enabled in the tree producer
 ])
+lightFourVectorType = NTupleObjectType("lightFourVector", variables = [
+    NTupleVariable("pt",    lambda x : x.pt(), storageType="H"),
+    NTupleVariable("eta",   lambda x : x.eta(), storageType="H"),
+    NTupleVariable("phi",   lambda x : x.phi(), storageType="H"),
+    NTupleVariable("mass",  lambda x : x.mass(), storageType="H"),
+])
 tlorentzFourVectorType = NTupleObjectType("tlorentzFourVectorType", variables = [
     NTupleVariable("pt",    lambda x : x.Pt()),
     NTupleVariable("eta",   lambda x : x.Eta()),
@@ -50,6 +56,8 @@ leptonType = NTupleObjectType("lepton", baseObjectTypes = [ particleType ], vari
     # Identification
     NTupleVariable("tightId",     lambda x : x.tightId(), int, help="POG Tight ID (for electrons it's configured in the analyzer)"),
     NTupleVariable("hltId",    lambda x : x.hltId() if abs(x.pdgId()) == 11 else -1, int, help="POG HLT-safe cut-based ID (for electrons, includes also isolation)"),
+    NTupleVariable("eleCutIdCSA14_25ns_v1",     lambda x : (1*x.electronID("POG_Cuts_ID_CSA14_25ns_v1_Veto") + 1*x.electronID("POG_Cuts_ID_CSA14_25ns_v1_Loose") + 1*x.electronID("POG_Cuts_ID_CSA14_25ns_v1_Medium") + 1*x.electronID("POG_Cuts_ID_CSA14_25ns_v1_Tight")) if abs(x.pdgId()) == 11 else -1, int, help="Electron cut-based id (POG CSA14_25ns_v1): 0=none, 1=veto, 2=loose, 3=medium, 4=tight"),
+    NTupleVariable("eleCutIdCSA14_50ns_v1",     lambda x : (1*x.electronID("POG_Cuts_ID_CSA14_50ns_v1_Veto") + 1*x.electronID("POG_Cuts_ID_CSA14_50ns_v1_Loose") + 1*x.electronID("POG_Cuts_ID_CSA14_50ns_v1_Medium") + 1*x.electronID("POG_Cuts_ID_CSA14_50ns_v1_Tight")) if abs(x.pdgId()) == 11 else -1, int, help="Electron cut-based id (POG CSA14_50ns_v1): 0=none, 1=veto, 2=loose, 3=medium, 4=tight"),
     NTupleVariable("eleCutIdSpring15_25ns_v1",     lambda x : (1*x.electronID("cutBasedElectronID-Spring15-25ns-V1-standalone-veto") + 1*x.electronID("cutBasedElectronID-Spring15-25ns-V1-standalone-loose") + 1*x.electronID("cutBasedElectronID-Spring15-25ns-V1-standalone-medium") + 1*x.electronID("cutBasedElectronID-Spring15-25ns-V1-standalone-tight")) if abs(x.pdgId()) == 11 and x.isElectronIDAvailable("cutBasedElectronID-Spring15-25ns-V1-standalone-veto") else -1, int, help="Electron cut-based id (POG Spring15_25ns_v1): 0=none, 1=veto, 2=loose, 3=medium, 4=tight"),
     # more on electron
     NTupleVariable("hasGainSwitchFlag",   lambda x : x.userInt("hasGainSwitchFlag") if x.hasUserInt('hasGainSwitchFlag') and abs(x.pdgId()) == 11 else -1, int, help="photon has gain switched"),
@@ -78,6 +86,40 @@ leptonType = NTupleObjectType("lepton", baseObjectTypes = [ particleType ], vari
     NTupleVariable("mediumMuonId",   lambda x : x.muonID("POG_ID_Medium") if abs(x.pdgId())==13 else 1, int, help="Muon POG Medium id"),
     NTupleVariable("ICHEPsoftMuonId",   lambda x : x.muonID("POG_ID_Soft_ICHEP") if abs(x.pdgId())==13 else 1, int, help="Muon POG Soft id with fix for ICHEP 2016"),
     NTupleVariable("ICHEPmediumMuonId",   lambda x : x.muonID("POG_ID_Medium_ICHEP") if abs(x.pdgId())==13 else 1, int, help="Muon POG Medium id with fix for ICHEP 2016"),
+
+])
+
+# as leptonType but removing some obsolete variables
+# might make leptonType have this one as baseObjectTypes
+leptonTypeSmaller = NTupleObjectType("lepton", baseObjectTypes = [ particleType ], variables = [
+    NTupleVariable("charge",   lambda x : x.charge(), int),
+    # Identification
+    NTupleVariable("tightId",     lambda x : x.tightId(), int, help="POG Tight ID (for electrons it's configured in the analyzer)"),
+    NTupleVariable("hltId",    lambda x : x.hltId() if abs(x.pdgId()) == 11 else -1, int, help="POG HLT-safe cut-based ID (for electrons, includes also isolation)"),
+    # Impact parameter
+    NTupleVariable("dxy",   lambda x : x.dxy(), help="d_{xy} with respect to PV, in cm (with sign)"),
+    NTupleVariable("dz",    lambda x : x.dz() , help="d_{z} with respect to PV, in cm (with sign)"),
+    NTupleVariable("edxy",  lambda x : x.edB(), help="#sigma(d_{xy}) with respect to PV, in cm"),
+    NTupleVariable("edz",   lambda x : x.edz(), help="#sigma(d_{z}) with respect to PV, in cm"),
+    NTupleVariable("ip3d",  lambda x : x.ip3D() , help="d_{3d} with respect to PV, in cm (absolute value)"),
+    NTupleVariable("sip3d",  lambda x : x.sip3D(), help="S_{ip3d} with respect to PV (significance)"),
+    # Conversion rejection
+    NTupleVariable("convVeto",    lambda x : x.passConversionVeto() if abs(x.pdgId())==11 else 1, int, help="Conversion veto (always true for muons)"),
+    NTupleVariable("lostHits",    lambda x : (x.gsfTrack() if abs(x.pdgId())==11 else x.innerTrack()).hitPattern().numberOfLostHits(ROOT.reco.HitPattern.MISSING_INNER_HITS), int, help="Number of lost hits on inner track"),
+    # Isolations with the two radia
+    NTupleVariable("relIso03",  lambda x : x.relIso03, help="PF Rel Iso, R=0.3, pile-up corrected"),
+    NTupleVariable("relIso04",  lambda x : x.relIso04, help="PF Rel Iso, R=0.4, pile-up corrected"),
+    NTupleVariable("miniRelIso",  lambda x : x.miniRelIso if hasattr(x,'miniRelIso') else  -999, help="PF Rel miniRel, pile-up corrected"),
+    NTupleVariable("relIsoAn04",  lambda x : x.relIsoAn04 if hasattr(x,'relIsoAn04') else  -999, help="PF Activity Annulus, pile-up corrected"),
+    # Charge flip rejection criteria
+    NTupleVariable("tightCharge",  lambda lepton : ( lepton.isGsfCtfScPixChargeConsistent() + lepton.isGsfScPixChargeConsistent() ) if abs(lepton.pdgId()) == 11 else 2*(lepton.muonBestTrack().ptError()/lepton.muonBestTrack().pt() < 0.2), int, help="Tight charge criteria: for electrons, 2 if isGsfCtfScPixChargeConsistent, 1 if only isGsfScPixChargeConsistent, 0 otherwise; for muons, 2 if ptError/pt < 0.20, 0 otherwise (using the muon best track)"),
+    # MC-match info
+    NTupleVariable("mcMatchId",  lambda x : getattr(x, 'mcMatchId', -99), int, mcOnly=True, help="Match to source from hard scatter (pdgId of heaviest particle in chain, 25 for H, 6 for t, 23/24 for W/Z), zero if non-prompt or fake"),
+    NTupleVariable("mcMatchAny", lambda x : getattr(x, 'mcMatchAny', -99), int, mcOnly=True, help="Match to any final state leptons: 0 if unmatched, 1 if light flavour (including prompt), 4 if charm, 5 if bottom"),
+    NTupleVariable("mcMatchTau", lambda x : getattr(x, 'mcMatchTau', -99), int, mcOnly=True, help="True if the leptons comes from a tau"),
+    NTupleVariable("mcPt",   lambda x : x.mcLep.pt() if getattr(x,"mcLep",None) else 0., mcOnly=True, help="p_{T} of associated gen lepton"),
+    NTupleVariable("mediumMuonId",   lambda x : x.muonID("POG_ID_Medium") if abs(x.pdgId())==13 else 1, int, help="Muon POG Medium id"),
+    NTupleVariable("looseMuonId",   lambda x : x.muonID("POG_ID_Loose") if abs(x.pdgId())==13 else 1, int, help="Muon POG Loose id"),
 
 ])
 
@@ -195,6 +237,7 @@ jetType = NTupleObjectType("jet",  baseObjectTypes = [ fourVectorType ], variabl
     NTupleVariable("rawPt",  lambda x : x.pt() * x.rawFactor(), help="p_{T} before JEC"),
     NTupleVariable("mcPt",   lambda x : x.mcJet.pt() if getattr(x,"mcJet",None) else 0., mcOnly=True, help="p_{T} of associated gen jet"),
     NTupleVariable("mcFlavour", lambda x : x.partonFlavour(), int,     mcOnly=True, help="parton flavour (physics definition, i.e. including b's from shower)"),
+    NTupleVariable("partonFlavour", lambda x : x.partonFlavour(), int,     mcOnly=True, help="purely parton-based flavour"),
     NTupleVariable("hadronFlavour", lambda x : x.hadronFlavour(), int,     mcOnly=True, help="hadron flavour (ghost matching to B/C hadrons)"),
     NTupleVariable("mcMatchId",  lambda x : getattr(x, 'mcMatchId', -99), int, mcOnly=True, help="Match to source from hard scatter (pdgId of heaviest particle in chain, 25 for H, 6 for t, 23/24 for W/Z), zero if non-prompt or fake"),
     NTupleVariable("corr_JECUp",  lambda x : getattr(x, 'corrJECUp', -99), float,  help=""),
@@ -216,6 +259,8 @@ jetTypeExtra = NTupleObjectType("jetExtra",  baseObjectTypes = [ jetType ], vari
     NTupleVariable("partonMotherId", lambda x : getattr(x,'partonMotherId', 0), int,     mcOnly=True, help="parton flavour (manually matching to status 23 particles)"),
     NTupleVariable("nLeptons",   lambda x : len(x.leptons) if  hasattr(x,'leptons') else  0 , float, mcOnly=False,help="Number of associated leptons"),
 ])
+
+      
 jetTypeID = NTupleObjectType("jetID", baseObjectTypes=[jetType], variables=[
     NTupleVariable("rawEnergy", lambda x: x.rawEnergy(), float, mcOnly=False, help="energy before JECs"),
     NTupleVariable("chf", lambda x: x.chargedHadronEnergy()/x.rawEnergy(), float, mcOnly=False, help="charged hadron fraction"),
@@ -227,8 +272,6 @@ jetTypeID = NTupleObjectType("jetID", baseObjectTypes=[jetType], variables=[
     NTupleVariable("npr", lambda x: x.chargedMultiplicity() + x.neutralMultiplicity(), int, mcOnly=False, help="number of constituents"),
     NTupleVariable("npn", lambda x: x.neutralMultiplicity(), int, mcOnly=False, help="neutral hadron multiplicity"),
 ])
-
-      
 ##------------------------------------------  
 ## MET
 ##------------------------------------------  
@@ -247,10 +290,18 @@ metType = NTupleObjectType("met", baseObjectTypes = [ fourVectorType ], variable
 ## GENPARTICLE
 ##------------------------------------------  
 
-genParticleType = NTupleObjectType("genParticle", baseObjectTypes = [ particleType ], mcOnly=True, variables = [
+genParticleType = NTupleObjectType("genParticle", baseObjectTypes = [ lightFourVectorType ], mcOnly=True, variables = [
+    NTupleVariable("pdgId",   lambda x : x.pdgId(), int),
     NTupleVariable("charge",   lambda x : x.threeCharge()/3.0, float),
     NTupleVariable("status",   lambda x : x.status(),int),
     NTupleVariable("isPromptHard", lambda x : getattr(x,"promptHardFlag",0), int)
+    NTupleVariable("isDirectPromptTauDecayProductFinalState", lambda x : getattr(x, "_isDirectPromptTauDecayProductFinalState", 0), int ),
+    NTupleVariable("lastBeforeFSR"                          , lambda x : getattr(x, "_isLastCopyBeforeFSR"                    , 0), int ),
+    NTupleVariable("fromHardProcessBeforeFSR"               , lambda x : getattr(x, "_fromHardProcessBeforeFSR"               , 0), int ),
+    NTupleVariable("isPromptDecayed"                        , lambda x : getattr(x, "_isPromptDecayed"                        , 0), int ),
+    NTupleVariable("fromHardProcessFinalState"              , lambda x : getattr(x, "_fromHardProcessFinalState"              , 0), int ),
+    NTupleVariable("fromHardProcessDecayed"                 , lambda x : getattr(x, "_fromHardProcessDecayed"                 , 0), int ),
+    NTupleVariable("isPromptFinalState"                     , lambda x : getattr(x, "_isPromptFinalState"                     , 0), int )
 ])
 genParticleWithMotherId = NTupleObjectType("genParticleWithMotherId", baseObjectTypes = [ genParticleType ], mcOnly=True, variables = [
     NTupleVariable("motherId", lambda x : x.mother(0).pdgId() if x.mother(0) else 0, int, help="pdgId of the mother of the particle"),
@@ -263,4 +314,11 @@ genParticleWithAncestryType = NTupleObjectType("genParticleWithAncestry", baseOb
 ])
 genParticleWithLinksType = NTupleObjectType("genParticleWithLinks", baseObjectTypes = [ genParticleWithAncestryType ], mcOnly=True, variables = [
     NTupleVariable("motherIndex", lambda x : x.motherIndex, int, help="index of the mother in the generatorSummary")
+])
+
+genParticleWithLinksTypeAndVertex = NTupleObjectType("genParticleWithLinksAndVertex", baseObjectTypes = [ genParticleWithAncestryType ], mcOnly=True, variables = [
+    NTupleVariable("motherIndex", lambda x : x.motherIndex, int, help="index of the mother in the generatorSummary"),
+    #NTupleVariable("vertexX", lambda x : x.vx(), float, help="x coordinate of vertex position"),
+    #NTupleVariable("vertexY", lambda x : x.vy(), float, help="y coordinate of vertex position"),
+    NTupleVariable("vertexZ", lambda x : x.vz(), float, help="z coordinate of vertex position")
 ])

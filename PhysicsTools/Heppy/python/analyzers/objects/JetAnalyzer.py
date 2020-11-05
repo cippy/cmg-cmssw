@@ -207,7 +207,7 @@ class JetAnalyzer( Analyzer ):
 
 
 
-        ##Sort Jets by pT 
+	##Sort Jets by pT 
         allJets.sort(key = lambda j : j.pt(), reverse = True)
 
         leptons = []
@@ -218,7 +218,7 @@ class JetAnalyzer( Analyzer ):
         if self.cfg_ana.cleanJetsFromIsoTracks and hasattr(event, 'selectedIsoCleanTrack'):
             leptons = leptons[:] + event.selectedIsoCleanTrack
 
-        ## Apply jet selection
+	## Apply jet selection
         self.jets = []
         self.jetsFailId = []
         self.jetsAllNoID = []
@@ -227,6 +227,7 @@ class JetAnalyzer( Analyzer ):
             #Check if lepton and jet have overlapping PF candidates 
             leps_with_overlaps = []
             if getattr(self.cfg_ana, 'checkLeptonPFOverlap', True):
+           if hasCommonSourceCandidatePtr(jet,lep):
                 for lep in leptons:
                     if hasCommonSourceCandidatePtr(jet,lep):
                         leps_with_overlaps += [lep]
@@ -361,6 +362,7 @@ class JetAnalyzer( Analyzer ):
             if self.cfg_ana.cleanGenJetsFromPhoton:
                 self.cleanGenJets = cleanNearestJetOnly(self.cleanGenJets, photons, self.jetLepDR)
 
+
             if getattr(self.cfg_ana, 'attachNeutrinos', True) and hasattr(self.cfg_ana,"genNuSelection") :
                 jetNus=[x for x in event.genParticles if abs(x.pdgId()) in [12,14,16] and self.cfg_ana.genNuSelection(x) ]
                 pairs= matchObjectCollection (jetNus, self.genJets, 0.4**2)
@@ -370,7 +372,7 @@ class JetAnalyzer( Analyzer ):
                         if not hasattr(genJet,"nu") :
                             genJet.nu=nu.p4()
                         else :
-                            genJet.nu+=nu.p4()
+                            genJet.nu+=nu.p4()			
 
 
             if self.cfg_ana.do_mc_match:
@@ -414,17 +416,16 @@ class JetAnalyzer( Analyzer ):
 
 
     def testJetID(self, jet):
-        jet.puJetIdPassed = jet.puJetId()
-        jet.pfJetIdPassed = jet.jetID('POG_PFID_Tight')
+        jet.puJetIdPassed = jet.puJetId() # default used 80X version from miniaod 
+        jet.pfJetIdPassed = jet.jetID('POG_PFID_Tight')  # or POG_PFID_Loose?
         if self.cfg_ana.relaxJetId:
             return True
         else:
             return jet.pfJetIdPassed and (jet.puJetIdPassed or not(self.doPuId)) 
-
+        
     def testJetNoID( self, jet ):
         # 2 is loose pile-up jet id
-        return jet.pt()*(max(1,jet.corrJECUp/jet.corr,jet.corrJECDown/jet.corr) if self.jetPtOrUpOrDnSelection else 1) > self.cfg_ana.jetPt and \
-               abs( jet.eta() ) < self.cfg_ana.jetEta;
+        return jet.pt()*(max(1,jet.corrJECUp/jet.corr,jet.corrJECDown/jet.corr) if self.jetPtOrUpOrDnSelection else 1) > self.cfg_ana.jetPt and abs( jet.eta() ) < self.cfg_ana.jetEta;
 
     def jetFlavour(self,event):
         def isFlavour(x,f):
@@ -447,7 +448,7 @@ class JetAnalyzer( Analyzer ):
             parton = match[jet]
             jet.partonId = (parton.pdgId() if parton != None else 0)
             jet.partonMotherId = (parton.mother(0).pdgId() if parton != None and parton.numberOfMothers()>0 else 0)
-
+        
         for jet in self.jets:
             (bmatch, dr) = bestMatch(jet, self.bqObjects)
             if dr < 0.4:
@@ -478,7 +479,7 @@ class JetAnalyzer( Analyzer ):
             jet.mcJet = match[jet]
 
 
-
+ 
     def smearJets(self, event, jets):
         # https://twiki.cern.ch/twiki/bin/viewauth/CMS/TWikiTopRefSyst#Jet_energy_resolution
         for jet in jets:
@@ -494,6 +495,7 @@ class JetAnalyzer( Analyzer ):
                   jet.setP4(jet.p4()*ptscale)
                   # leave the uncorrected unchanged for sync
                   jet.setRawFactor(jet.rawFactor()/ptscale)
+            #else: print "jet with pt %.1d, eta %.2f is unmatched" % (jet.pt(), jet.eta())
                if (self.shiftJER==0) and (self.addJERShifts):
                    setattr(jet, "corrJER", ptscale )
                    factorJERUp= shiftJERfactor(1, aeta)
@@ -502,7 +504,6 @@ class JetAnalyzer( Analyzer ):
                    factorJERDown= shiftJERfactor(-1, aeta)
                    ptscaleJERDown = max(0.0, (jetpt + (factorJERDown-1)*(jetpt-genpt))/jetpt)
                    setattr(jet, "corrJERDown", ptscaleJERDown)
-            #else: print "jet with pt %.1d, eta %.2f is unmatched" % (jet.pt(), jet.eta())
 
 
 

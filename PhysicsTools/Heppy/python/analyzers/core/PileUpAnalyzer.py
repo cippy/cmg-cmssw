@@ -25,12 +25,12 @@ class PileUpAnalyzer( Analyzer ):
     This weight is multiplied to the global event weight, event.eventWeight.
     When using this analyzer, make sure that the VertexAnalyzer is disabled,
     as you would be reweighting the MC PU distribution twice!
-
+    
     Additionally, this analyzer writes in the output an histogram containing the unweighting MC
-    pile-up distribution, to be used in input of the weighting for a later pass.
-
-    Example of use:
-
+    pile-up distribution, to be used in input of the weighting for a later pass. 
+    
+    Example of use: 
+    
     puAna = cfg.Analyzer(
       "PileUpAnalyzer",
       # build unweighted pu distribution using number of pile up interactions if False
@@ -63,8 +63,7 @@ class PileUpAnalyzer( Analyzer ):
 
         self.setupInputs()
 
-
-    def setupInputs(self, event=None):
+    def setupInputs(self, event=None):          
         if self.cfg_comp.isMC or self.cfg_comp.isEmbed:
             if not hasattr(self.cfg_comp,"puFileMC") or (self.cfg_comp.puFileMC is None and self.cfg_comp.puFileData is None):
                 self.enable = False
@@ -98,7 +97,6 @@ class PileUpAnalyzer( Analyzer ):
                     if self.mchist.GetXaxis().GetXmax() != self.datahist.GetXaxis().GetXmax():
                         raise ValueError('data and mc histograms must have the same xmax')
 
-
     def setupEventInputs(self, event=None):
         if self.cfg_comp.isMC or self.cfg_comp.isEmbed:
             if not hasattr(self.cfg_comp,"puFileMC") or (self.cfg_comp.puFileMC is None and self.cfg_comp.puFileData is None):
@@ -112,15 +110,15 @@ class PileUpAnalyzer( Analyzer ):
                 self.mchist = gPad.GetPrimitive("pileup_MC").Clone() # It's the only method that I get to work
                 self.mchist.Scale( 1 / self.mchist.Integral(0, self.mchist.GetNbinsX() + 1) )
 
-
     def declareHandles(self):
         super(PileUpAnalyzer, self).declareHandles()
         self.mchandles['pusi'] =  AutoHandle(
             'slimmedAddPileupInfo',
             'std::vector<PileupSummaryInfo>',
             fallbackLabel="addPileupInfo"
-            )
-
+            ) 
+        if self.cfg_comp.isMC:
+            self.mchandles['GenInfo'] = AutoHandle( ('generator','',''), 'GenEventInfoProduct' )
         if self.allVertices == '_AUTO_':
             self.handles['vertices'] =  AutoHandle( "offlineSlimmedPrimaryVertices", 'std::vector<reco::Vertex>', fallbackLabel="offlinePrimaryVertices" )
         else:
@@ -135,7 +133,6 @@ class PileUpAnalyzer( Analyzer ):
         self.readCollections( event.input )
         if self.autoPU and self.currentFile != event.input.events.object().getTFile().GetName():
             self.setupEventInputs(event)
-
         ## if component is embed return (has no trigger obj)
         if self.cfg_comp.isEmbed :
           return True
@@ -156,7 +153,9 @@ class PileUpAnalyzer( Analyzer ):
                         event.nPU = puInfo.nTrueInteractions()
 
                     if self.doHists:
-                        self.rawmcpileup.hist.Fill( event.nPU )
+                        #self.rawmcpileup.hist.Fill( event.nPU )
+                        genWeight_ = float(self.mchandles['GenInfo'].product().weight())     
+                        self.rawmcpileup.hist.Fill( event.nPU, genWeight_ )
 
                     ##get z position of on-time pile-up sorted by pt-hat
                     ptHat_zPositions = zip(puInfo.getPU_pT_hats(),puInfo.getPU_zpositions())
@@ -164,7 +163,7 @@ class PileUpAnalyzer( Analyzer ):
                     for ptHat_zPosition in ptHat_zPositions:
                         event.pileUpVertex_z.append(ptHat_zPosition[1])
                         event.pileUpVertex_ptHat.append(ptHat_zPosition[0])
-
+            
             if event.nPU is None:
                 raise ValueError('nPU cannot be None! means that no pu info has been found for bunch crossing 0.')
         elif self.cfg_comp.isEmbed:
@@ -185,11 +184,11 @@ class PileUpAnalyzer( Analyzer ):
                     event.puWeight = data/mc
                 else:
                     event.puWeight = 1
-
+                
         event.eventWeight *= event.puWeight
         self.averages['puWeight'].add( event.puWeight )
         return True
-
+        
     def write(self, setup):
         super(PileUpAnalyzer, self).write(setup)
         if self.cfg_comp.isMC and self.doHists:
@@ -202,3 +201,4 @@ setattr(PileUpAnalyzer,"defaultConfig", cfg.Analyzer(
     makeHists=False
 )
 )
+
